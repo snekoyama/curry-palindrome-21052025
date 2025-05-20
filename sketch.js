@@ -12,7 +12,7 @@ let currentTextSize = 36; // 初期値、draw内で再計算
 let kanjiChunkIndex = 0;
 let kanjiSubTextAnimCount = 0;
 
-// ひらがなサブタイトル用 (元英語サブタイトル)
+// ひらがなサブタイトル用 (元英語サブタイトルから変更)
 let hiraganaSubChunkIndex = 0;
 let hiraganaSubTextAnimCount = 0;
 
@@ -28,7 +28,10 @@ let g, titleg, kanjiSub, hiraganaSub; // englishSub を hiraganaSub に変更
 
 let data;
 let currentPalindrome;
-let hiraganaSubBoxWidth; // 元のenglishBoxWidthを再利用
+let hiraganaSubBoxWidth; // 元のenglishBoxWidthの役割
+
+// textSizeValues はこのバージョンでは使用しない
+// let textSizeValues = [];
 
 function preload() {
   font = loadFont('NotoSansJP-Custom-Subset.ttf');
@@ -56,7 +59,7 @@ function setup() {
   g = createGraphics(boxWidth, mainBoxHeight);
   titleg = createGraphics(width, 48);
   kanjiSub = createGraphics(width, 100);
-  hiraganaSub = createGraphics(hiraganaSubBoxWidth, 100);
+  hiraganaSub = createGraphics(hiraganaSubBoxWidth, 100); // englishSubから変更
 
   if (palindromes && palindromes.length > 0) {
     console.log("total " + palindromes.length + " palindromes");
@@ -106,9 +109,8 @@ function draw() {
   if (mainDisplayEnglishText && typeof mainDisplayEnglishText === 'string' && mainDisplayEnglishText.length > 0) {
     const mainTextLength = mainDisplayEnglishText.length;
     let charsToAdd = 1;
-    let animInterval = 10; // デフォルトのアニメーション間隔
+    let animInterval = 10;
 
-    // 文字数に応じてアニメーション速度を調整
     if (mainTextLength > 500) { charsToAdd = 15; animInterval = 1; }
     else if (mainTextLength > 200) { charsToAdd = 8; animInterval = 2; }
     else if (mainTextLength > 100) { charsToAdd = 4; animInterval = 3; }
@@ -120,27 +122,27 @@ function draw() {
         textAnimIndex = mainTextLength;
       }
       if (typewriterSound && typewriterSound.isLoaded() && textAnimIndex > 0) {
-        typewriterSound.play(); // メインテキスト（英語）表示で音を鳴らす
+        typewriterSound.play();
       }
     }
     animatedMainEnglish = mainDisplayEnglishText.substring(0, textAnimIndex);
   } else {
-    textAnimIndex = 0; // アニメートするテキストがない場合はリセット
-    animatedMainEnglish = ""; // 表示も空に
+    textAnimIndex = 0;
+    animatedMainEnglish = "";
   }
   
-  // メイン表示のフォントサイズ計算 (英語用)
-  let mainTextForSizing = mainDisplayEnglishText || " "; // fitTextToBoxが空文字を嫌うため
+  let mainTextForSizing = mainDisplayEnglishText || " ";
   if (mainTextForSizing.trim().length > 0) {
-    currentTextSize = fitTextToBox(mainTextForSizing, boxWidth, mainBoxHeight / 2, g, " "); // 第5引数にデリミタ " " を指定
+    // ★ fitTextToBox に英語用の区切り文字 " " を渡す
+    currentTextSize = fitTextToBox(mainTextForSizing, boxWidth, mainBoxHeight / 2, g, " "); 
   } else {
-    currentTextSize = fontSize; // デフォルトサイズ
+    currentTextSize = fontSize;
   }
 
   // メイン表示 (英語) をgバッファに描画
   g.clear();
   g.background("black");
-  g.textFont(font); // NotoSansJP で英語を表示（必要なら英語用フォントを用意して切り替え）
+  g.textFont(font); 
   g.textSize(currentTextSize);
   g.fill("white");
   g.textAlign(CENTER, TOP);
@@ -153,7 +155,7 @@ function draw() {
   titleg.clear();
   titleg.background('black');
   let titleFontSize = fontSize * 0.9;
-  let titleText = `Curry Palindrome No - ${index + 1}`; // メインが英語であることを示す
+  let titleText = `Curry Palindrome (EN) - ${index + 1}`; // メインが英語であることを示す
   titleg.textFont("default");
   titleg.textSize(titleFontSize);
   while (titleg.textWidth(titleText) > titleg.width - 40 && titleFontSize > 10) {
@@ -174,7 +176,7 @@ function draw() {
   kanjiSub.textSize(fontSize * 0.8);
   kanjiSub.fill("white");
   kanjiSub.textAlign(CENTER, TOP);
-  let kanjiLinesFull = breakTextIntoLines(currentKanjiForSubtitle, "", boxWidth, kanjiSub); //漢字は区切り文字なし
+  let kanjiLinesFull = breakTextIntoLines(currentKanjiForSubtitle, "", boxWidth, kanjiSub);
   let kanjiChunks = chunkTextLines(kanjiLinesFull, 2);
 
   if (frameCount % 300 == 0) {
@@ -194,21 +196,21 @@ function draw() {
   }
   drawTextInBox(displayedKanjiLines, 0, 0, kanjiSub.width, kanjiSub.height, kanjiSub);
   imageMode(CENTER);
-  let hiraganaSubActualHeight = hiraganaSub ? hiraganaSub.height : 100; // 下のひらがなサブの高さを考慮
-  image(kanjiSub, width / 2, height - kanjiSub.height - hiraganaSubActualHeight - 30);
+  let hiraganaSubActualHeight = hiraganaSub ? hiraganaSub.height : 100;
+  image(kanjiSub, width / 2, height - kanjiSub.height - hiraganaSubActualHeight - 40); // Y位置微調整
 
 
-  // 4. ひらがなサブタイトル描画 (元英語サブタイトルの場所とロジックを流用)
+  // 4. ひらがなサブタイトル描画
   let currentHiraganaForSubtitle = currentPalindrome.hiragana || "";
   
-  hiraganaSub.textFont(font); // フォント設定
-  hiraganaSub.textSize(fontSize * 0.8); // サイズ設定
-  hiraganaSub.textLeading(hiraganaSub.textSize() * 1.2); // 行間設定
+  hiraganaSub.textFont(font); 
+  hiraganaSub.textSize(fontSize * 0.8); 
+  hiraganaSub.textLeading(hiraganaSub.textSize() * 1.2); 
   
-  let hiraganaSubLinesFull = breakTextIntoLines(currentHiraganaForSubtitle, "", hiraganaSubBoxWidth, hiraganaSub); // ひらがなは区切り文字なし
+  let hiraganaSubLinesFull = breakTextIntoLines(currentHiraganaForSubtitle, "", hiraganaSubBoxWidth, hiraganaSub);
   let hiraganaSubChunks = chunkTextLines(hiraganaSubLinesFull, 3);
 
-  if (frameCount % 300 == 0) { // 漢字サブと同期してチャンク切り替え
+  if (frameCount % 300 == 0) { 
     if (hiraganaSubChunks.length > 0) {
         hiraganaSubChunkIndex = (hiraganaSubChunkIndex + 1) % hiraganaSubChunks.length;
     } else {
@@ -219,20 +221,19 @@ function draw() {
   
   let currentHiraganaSubChunk = (hiraganaSubChunks.length > 0 && hiraganaSubChunks[hiraganaSubChunkIndex]) ? hiraganaSubChunks[hiraganaSubChunkIndex] : [];
 
-  // ひらがなサブの高さ計算と再生成
-  let requiredHiraganaSubHeight = (hiraganaSub.textLeading() * currentHiraganaSubChunk.length) + 20; // +20 はパディング
-  requiredHiraganaSubHeight = max(requiredHiraganaSubHeight, 50); // 最小高さ50px
+  let requiredHiraganaSubHeight = (hiraganaSub.textLeading() * currentHiraganaSubChunk.length) + 20;
+  requiredHiraganaSubHeight = max(requiredHiraganaSubHeight, 50); 
 
-  if (hiraganaSub.height !== requiredHiraganaSubHeight || hiraganaSub.width !== hiraganaSubBoxWidth) { //幅もチェック
+  if (hiraganaSub.height !== requiredHiraganaSubHeight || hiraganaSub.width !== hiraganaSubBoxWidth) { 
     hiraganaSub = createGraphics(hiraganaSubBoxWidth, requiredHiraganaSubHeight);
-    hiraganaSub.background('black'); // 再生成時にもプロパティ設定
-    hiraganaSub.textFont(font);
+    hiraganaSub.background('black'); 
+    hiraganaSub.textFont(font); 
     hiraganaSub.textSize(fontSize * 0.8);
     hiraganaSub.fill("white");
     hiraganaSub.textAlign(CENTER, TOP);
   }
   
-  hiraganaSub.clear();
+  hiraganaSub.clear(); 
   hiraganaSub.background('black');
   hiraganaSub.textFont(font);
   hiraganaSub.textSize(fontSize * 0.8);
@@ -248,20 +249,20 @@ function draw() {
   
   drawTextInBox(displayedHiraganaSubLines, 0, 0, hiraganaSub.width, hiraganaSub.height, hiraganaSub);
   imageMode(CENTER);
-  image(hiraganaSub, width / 2, height - hiraganaSub.height / 2 - 10); // 画面最下部付近に配置
+  image(hiraganaSub, width / 2, height - hiraganaSub.height / 2 - 20); // Y位置微調整
 }
 
 function getAnimatedLines(linesInChunk, animCount) {
   let displayedLines = [];
   let totalCharsInChunk = 0;
-  if (linesInChunk) { // linesInChunk が undefined でないか確認
+  if (linesInChunk) { 
     for (let line of linesInChunk) {
-      if (line) totalCharsInChunk += line.length; // line が undefined でないか確認
+      if (line && typeof line === 'string') totalCharsInChunk += line.length; 
     }
     let charBudget = animCount;
     for (let i = 0; i < linesInChunk.length; i++) {
       const line = linesInChunk[i];
-      if (line) { // line が undefined でないか確認
+      if (line && typeof line === 'string') { 
         if (charBudget <= 0) {
           displayedLines.push("");
         } else {
@@ -270,7 +271,7 @@ function getAnimatedLines(linesInChunk, animCount) {
           charBudget -= linePortionLength;
         }
       } else {
-        displayedLines.push(""); // line が undefined なら空文字
+        displayedLines.push(""); 
       }
     }
   }
@@ -287,7 +288,7 @@ function touchStarted() {
 }
 
 function handleButtonPressActions() {
-  textAnimIndex = 0; // メイン英語アニメーションリセット
+  textAnimIndex = 0; 
   kanjiChunkIndex = 0;
   kanjiSubTextAnimCount = 0;
   hiraganaSubChunkIndex = 0; 
@@ -298,14 +299,13 @@ function handleButtonPressActions() {
   } else {
     index = 0;
   }
-  // console.log(`クリック/タップ/Enterキー操作！現在のインデックス: ${index}`);
+  // console.log(`Next Palindrome: ${index}`);
 }
 
 function keyPressed() {
   if (keyCode === ENTER) {
     handleButtonPressActions();
   }
-  // Sキーでのモード切り替えはこのバージョンではなし
   if (key === 'G' || key === 'g') {
     if (!palindromes || palindromes.length === 0) return;
     let targetIndexInput = prompt('表示したいパリンドロームの番号を入力してください（例：1）：');
@@ -326,67 +326,83 @@ function keyPressed() {
 }
 
 function breakTextIntoLines(text, delimiter, bWidth, graphicsContext) {
-  if (!text && typeof text !== 'string') return []; // textがnull, undefined, または文字列でない場合
-  if (text === "") return []; // 空文字列の場合は空の行配列を返す
+  if (!text && typeof text !== 'string') return []; 
+  if (text === "") return [""]; 
 
-  let lines = [];
-  let currentLine = "";
   const gCtx = graphicsContext;
-
   if (!gCtx) {
     console.error("breakTextIntoLines: graphicsContext is undefined");
     return ["Error: Graphics context missing"];
   }
-  try {
-    if (delimiter === "") { // 日本語など文字ごと
-      for (let i = 0; i < text.length; i++) {
-        let testChar = text[i];
-        // textWidth が null や undefined の文字でエラーにならないように
-        if (typeof testChar !== 'string') continue; 
-        let testLine = currentLine + testChar;
-        if (gCtx.textWidth(testLine) > bWidth && currentLine.length > 0) {
-          lines.push(currentLine);
-          currentLine = testChar;
-        } else {
-          currentLine = testLine;
+
+  let finalLines = [];
+  const paragraphs = String(text).split('\n');
+
+  for (const paragraph of paragraphs) {
+    if (paragraph.trim() === "" && String(text).includes('\n')) {
+      finalLines.push(""); 
+      continue;
+    }
+    
+    let currentLine = "";
+    let linesInParagraph = [];
+
+    try {
+      if (delimiter === "" || paragraph.length === 0) { 
+        for (let i = 0; i < paragraph.length; i++) {
+          let testChar = paragraph[i];
+          if (typeof testChar !== 'string') continue; 
+          let testLine = currentLine + testChar;
+          if (gCtx.textWidth(testLine) > bWidth && currentLine.length > 0) {
+            linesInParagraph.push(currentLine);
+            currentLine = testChar;
+          } else {
+            currentLine = testLine;
+          }
         }
-      }
-    } else { // 英語など単語ごと
-      let words = String(text).split(delimiter); // textをStringにキャスト
-      for (let i = 0; i < words.length; i++) {
-        let testWord = words[i];
-        if (gCtx.textWidth(testWord) > bWidth && currentLine.length === 0) {
-           let tempWordLine = "";
-            for(let char of testWord) {
-                if (typeof char !== 'string') continue;
-                if(gCtx.textWidth(tempWordLine + char) > bWidth && tempWordLine.length > 0) {
-                    lines.push(tempWordLine);
-                    tempWordLine = char;
-                } else {
-                    tempWordLine += char;
-                }
+      } else { 
+        let words = paragraph.split(delimiter);
+        for (let i = 0; i < words.length; i++) {
+          let testWord = words[i];
+          if (testWord === "") continue; 
+
+          if (gCtx.textWidth(testWord) > bWidth && currentLine.length === 0) {
+            let tempWordLine = "";
+            for (let char of testWord) {
+              if (typeof char !== 'string') continue;
+              if (gCtx.textWidth(tempWordLine + char) > bWidth && tempWordLine.length > 0) {
+                linesInParagraph.push(tempWordLine);
+                tempWordLine = char;
+              } else {
+                tempWordLine += char;
+              }
             }
-            if(tempWordLine.length > 0) lines.push(tempWordLine);
+            if (tempWordLine.length > 0) linesInParagraph.push(tempWordLine);
             currentLine = ""; 
             continue;
-        }
-        let testLine = currentLine + (currentLine.length > 0 ? delimiter : "") + testWord;
-        if (gCtx.textWidth(testLine) > bWidth && currentLine.length > 0) {
-          lines.push(currentLine);
-          currentLine = testWord;
-        } else {
-          currentLine = testLine;
+          }
+
+          let testLine = currentLine + (currentLine.length > 0 ? delimiter : "") + testWord;
+          if (gCtx.textWidth(testLine) > bWidth && currentLine.length > 0) {
+            linesInParagraph.push(currentLine);
+            currentLine = testWord;
+          } else {
+            currentLine = testLine;
+          }
         }
       }
+      if (currentLine.length > 0) {
+        linesInParagraph.push(currentLine);
+      }
+      finalLines.push(...linesInParagraph);
+
+    } catch (e) {
+      console.error("Error in breakTextIntoLines (inner loop):", e, "Paragraph:", String(paragraph).substring(0,100));
+      finalLines.push("Error breaking paragraph");
     }
-  } catch (e) {
-    console.error("Error in breakTextIntoLines:", e, "Text:", String(text).substring(0,100), "Delimiter:", delimiter, "Width:", bWidth);
-    return ["Error breaking text"];
   }
-  if (currentLine.length > 0) {
-    lines.push(currentLine);
-  }
-  return lines;
+  if (text === "" && finalLines.length === 0) return [""];
+  return finalLines;
 }
 
 function drawTextInBox(lines, x, y, bWidth, bHeight, graphicsContext) {
@@ -398,16 +414,19 @@ function drawTextInBox(lines, x, y, bWidth, bHeight, graphicsContext) {
   }
   try {
     gCtx.textAlign(CENTER, TOP);
-    // textSize は呼び出し元で gCtx に設定されているはず
-    gCtx.textLeading(gCtx.textSize() * 1.2); 
+    // ★ 英語メイン表示用の行間調整を削除 (fitTextToBox での計算に依存)
+    //    または、ここで displayMode を参照しない形にする。今回は削除。
+    gCtx.textLeading(gCtx.textSize() * 1.2); // 基本の行間
+    
     let lineHeight = gCtx.textLeading();
     let totalTextHeight = lines.length * lineHeight;
     if (lines.length > 0) {
-        totalTextHeight -= (lineHeight - gCtx.textSize()); // より正確な高さに
+        totalTextHeight -= (lineHeight - gCtx.textSize());
     }
     let startY = y + (bHeight - totalTextHeight) / 2;
+
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i] !== undefined && typeof lines[i] === 'string') { // 文字列であることも確認
+      if (lines[i] !== undefined && typeof lines[i] === 'string') {
           gCtx.text(lines[i], x + bWidth / 2, startY + i * lineHeight);
       }
     }
@@ -416,10 +435,9 @@ function drawTextInBox(lines, x, y, bWidth, bHeight, graphicsContext) {
   }
 }
 
-// fitTextToBox: 第5引数として delimiter を受け取るように変更
+// fitTextToBox: 第5引数として delimiterForFit を受け取る
 function fitTextToBox(textContent, bWidth, bHeight, graphicsContextForCalc, delimiterForFit) {
   if (!textContent || typeof textContent !== 'string' || textContent.trim().length === 0) {
-    // console.warn("fitTextToBox: Invalid textContent provided, returning default fontSize.", textContent);
     return fontSize;
   }
 
@@ -430,45 +448,48 @@ function fitTextToBox(textContent, bWidth, bHeight, graphicsContextForCalc, deli
   }
 
   try {
-    tempG.textFont(font); // メイン表示用フォント (このスケッチでは英語もNotoSansJPで表示)
+    tempG.textFont(font); // NotoSansJPを使用
 
     let minSize = 6;
-    let maxSize = 120; // 英語は文字が大きめに見えることがあるので、最大値を調整しても良い
+    let maxSize = 120; 
     let bestSize = minSize;
 
     while (minSize <= maxSize) {
       let midSize = Math.floor((minSize + maxSize) / 2);
       if (midSize <= 0) { bestSize = 1; break; }
+      
       tempG.textSize(midSize);
-
       let effectiveTextSizeForCalc = midSize;
-      let lineHeightMultiplier = 1.2;
+      
+      // ★ 英語メイン表示用の行間調整を削除 (呼び出し側でデリミタ指定に依存)
+      //    または、ここで displayMode を参照しない形にする。今回は削除。
+      let lineHeightMultiplier = 1.2; // 基本の行間係数
 
-      if (windowWidth < 600) { // スマホサイズ補正
+      if (windowWidth < 600) {
         effectiveTextSizeForCalc = midSize * 0.8;
         tempG.textSize(effectiveTextSizeForCalc);
       }
       tempG.textLeading(effectiveTextSizeForCalc * lineHeightMultiplier);
       
-      // 関数に渡された delimiterForFit を使用する
+      // 関数に渡された delimiterForFit を使用
       let lines = breakTextIntoLines(textContent, delimiterForFit, bWidth, tempG);
       
-      let lineHeight = tempG.textLeading(); // textSize変更後のleading
+      let lineHeight = tempG.textLeading();
       let totalHeight = lines.length * lineHeight;
       if (lines.length > 0) {
-           totalHeight -= (lineHeight - effectiveTextSizeForCalc); // 精密な高さ
+           totalHeight -= (lineHeight - effectiveTextSizeForCalc);
       }
 
       let fitsWidth = true;
       for(let line of lines) {
-          if (typeof line !== 'string' || tempG.textWidth(line) > bWidth) { // lineが文字列であるかもチェック
+          if (typeof line !== 'string' || tempG.textWidth(line) > bWidth) {
               fitsWidth = false;
               break;
           }
       }
 
       if (totalHeight <= bHeight && fitsWidth) {
-        bestSize = midSize; // スケール前のmidSizeを保存
+        bestSize = midSize;
         minSize = midSize + 1;
       } else {
         maxSize = midSize - 1;
@@ -476,8 +497,8 @@ function fitTextToBox(textContent, bWidth, bHeight, graphicsContextForCalc, deli
     }
     return bestSize > 0 ? bestSize : 1;
   } catch (e) {
-    console.error("Error in fitTextToBox:", e, "Text:", textContent.substring(0,100));
-    return fontSize; // エラー時はデフォルトfontSize
+    console.error("Error in fitTextToBox:", e, "Text:", String(textContent).substring(0,100));
+    return fontSize;
   }
 }
 
